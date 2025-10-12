@@ -1,4 +1,6 @@
-const API_BASE = 'http://localhost:8000'
+const API_BASE = process.env.NODE_ENV === 'production' 
+  ? 'https://your-vercel-app.vercel.app' 
+  : 'http://localhost:8000'
 
 function getAuthHeaders() {
   const token = localStorage.getItem('token')
