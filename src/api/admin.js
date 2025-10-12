@@ -8,11 +8,11 @@ function getAuthHeaders() {
   }
 }
 
-export async function addUser(username, password, role = 'user', schema = null) {
+export async function addUser(username, password, role = 'user', schema = null, admin_schema = null) {
   const response = await fetch(`${API_BASE}/api/admin/add-user`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ username, password, role, schema })
+    body: JSON.stringify({ username, password, role, schema, admin_schema })
   })
   
   if (!response.ok) {
@@ -37,6 +37,37 @@ export async function removeUser(username) {
   }
   
   return { success: true }
+}
+
+export async function getUsers() {
+  const response = await fetch(`${API_BASE}/api/admin/users`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  })
+  
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || 'Failed to get users')
+  }
+  
+  const data = await response.json()
+  return data.users
+}
+
+export async function updateUser(userId, userData) {
+  const response = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(userData)
+  })
+  
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || 'Failed to update user')
+  }
+  
+  const data = await response.json()
+  return data
 }
 
 export async function analyzeColumns() {

@@ -46,6 +46,7 @@ def create_tables():
                 password_hash VARCHAR(255) NOT NULL,
                 role VARCHAR(50) DEFAULT 'user',
                 schema TEXT,
+                admin_schema TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -78,6 +79,43 @@ def create_tables():
             );
             CREATE INDEX IF NOT EXISTS idx_query_logs_username ON query_logs(username);
             CREATE INDEX IF NOT EXISTS idx_query_logs_created_at ON query_logs(created_at);
+        """,
+        
+        "chat_messages": """
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                role VARCHAR(50) NOT NULL,
+                content TEXT NOT NULL,
+                sql_generated TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_chat_messages_username ON chat_messages(username);
+            CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
+        """,
+        
+        "feedback": """
+            CREATE TABLE IF NOT EXISTS feedback (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                chat_message_id INTEGER,
+                feedback_text TEXT,
+                rating INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_feedback_username ON feedback(username);
+            CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback(created_at);
+        """,
+        "chat_sessions": """
+            CREATE TABLE IF NOT EXISTS chat_sessions (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                session_name VARCHAR(255) NOT NULL,
+                messages TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_chat_sessions_username ON chat_sessions(username);
+            CREATE INDEX IF NOT EXISTS idx_chat_sessions_created_at ON chat_sessions(created_at);
         """
     }
     
@@ -89,14 +127,14 @@ def create_tables():
         with connection.cursor() as cursor:
             # Only drop tables if RESET_DB_ON_STARTUP is true (explicit)
             if RESET_DB_ON_STARTUP:
-                for table_name in ["query_logs", "column_usage", "users"]:
+                for table_name in ["feedback", "chat_messages", "query_logs", "column_usage", "users"]:
                     try:
                         cursor.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE;")
                         print(f"CLEANUP:  Dropped existing table '{table_name}' if it existed")
                     except Exception as e:
                         print(f"WARNING:  Could not drop table '{table_name}': {e}")
             else:
-                print("INFO: RESET_DB_ON_STARTUP is false — skipping DROP TABLE phase")
+                print("INFO: RESET_DB_ON_STARTUP is false - skipping DROP TABLE phase")
             
             # Create each table (IF NOT EXISTS protects existing data)
             for table_name, table_sql in tables.items():
@@ -107,6 +145,26 @@ def create_tables():
                 except Exception as e:
                     print(f"ERROR: Error creating/ensuring table '{table_name}': {e}")
                     # Continue with other tables
+            
+            # Add missing columns to existing tables (migration)
+            try:
+                # Check if admin_schema column exists in users table
+                cursor.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'admin_schema'
+                """)
+                admin_schema_exists = cursor.fetchone()
+                
+                if not admin_schema_exists:
+                    print("Adding admin_schema column to users table...")
+                    cursor.execute("ALTER TABLE users ADD COLUMN admin_schema TEXT;")
+                    print("SUCCESS: admin_schema column added to users table")
+                else:
+                    print("admin_schema column already exists in users table")
+                    
+            except Exception as e:
+                print(f"WARNING: Could not add admin_schema column: {e}")
             
             # Create or replace updated_at trigger function
             try:
@@ -174,7 +232,7 @@ def check_database_connection():
 
 def verify_tables_exist():
     """Verify that all required tables exist in the database."""
-    required_tables = ["users", "column_usage", "query_logs"]
+    required_tables = ["users", "column_usage", "query_logs", "chat_messages", "feedback"]
     
     connection = None
     try:

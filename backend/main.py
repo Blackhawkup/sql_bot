@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 
 from routers.auth import router as auth_router
@@ -10,7 +13,11 @@ from database.init_db import init_neon_database
 
 load_dotenv()
 
+# Rate limiting setup
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="AI SQL Assistant Backend")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS
 app.add_middleware(
@@ -35,11 +42,11 @@ def health():
 @app.on_event("startup")
 def on_startup():
     # Initialize Neon PostgreSQL database
-    print("🚀 Starting SQL Bot backend...")
+    print("Starting SQL Bot backend...")
     if init_neon_database():
-        print("✅ Database initialization completed")
+        print("Database initialization completed")
     else:
-        print("⚠️  Database initialization failed, but continuing with fallback")
+        print("Database initialization failed, but continuing with fallback")
     
     # Initialize SQLAlchemy models (for compatibility)
     init_db()

@@ -13,8 +13,20 @@ export function AuthProvider({ children }) {
     const storedUser = localStorage.getItem('user')
     if (token && storedUser) {
       try {
-        setUser(JSON.parse(storedUser))
+        // Check if token is expired
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        const currentTime = Date.now() / 1000
+        
+        if (payload.exp && payload.exp > currentTime) {
+          // Token is still valid
+          setUser(JSON.parse(storedUser))
+        } else {
+          // Token is expired, clear storage
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+        }
       } catch (e) {
+        // Invalid token format, clear storage
         localStorage.removeItem('token')
         localStorage.removeItem('user')
       }

@@ -23,6 +23,11 @@ def get_connection():
     if postgres_url.startswith('"') and postgres_url.endswith('"'):
         postgres_url = postgres_url[1:-1]  # Remove surrounding quotes
     
+    # Add SSL mode if not already present
+    if "sslmode=" not in postgres_url:
+        separator = "&" if "?" in postgres_url else "?"
+        postgres_url = f"{postgres_url}{separator}sslmode=require"
+    
     return psycopg2.connect(postgres_url)
 
 

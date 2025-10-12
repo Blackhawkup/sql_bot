@@ -17,6 +17,6 @@ def login(body: LoginRequest):
     if not user or not verify_password(body.username, body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token(sub=user.username, role=user.role)
-    return {"status": "ok", "token": token, "role": user.role, "schema": user.schema}
+    return {"status": "ok", "token": token, "username": user.username, "role": user.role, "schema": user.schema}
 
 

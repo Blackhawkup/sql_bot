@@ -7,7 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 SECRET = os.getenv("JWT_SECRET", "dev-secret")
 
 
-def create_token(sub: str, role: str, expires_minutes: int = 60) -> str:
+def create_token(sub: str, role: str, expires_minutes: int = 1440) -> str:  # 1440 minutes = 24 hours
   payload = {
     "sub": sub,
     "role": role,

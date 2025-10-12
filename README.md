@@ -1,12 +1,12 @@
 # AI SQL Chat Assistant
 
-A full-stack application that provides an AI-powered SQL chat interface with Oracle database integration, Azure OpenAI, and role-based authentication.
+A full-stack application that provides an AI-powered SQL chat interface with PostgreSQL database integration, Azure OpenAI, and role-based authentication. Designed for company-wide database access with user-specific schema permissions.
 
 ## 🏗️ Architecture
 
 - **Frontend**: React + Vite + Tailwind CSS + Framer Motion
-- **Backend**: FastAPI + SQLite + cx_Oracle + Azure OpenAI
-- **Database**: Oracle (with SQLite for user management)
+- **Backend**: FastAPI + PostgreSQL + Azure OpenAI
+- **Database**: PostgreSQL with SSL encryption
 - **Authentication**: JWT-based with role-based access control
 
 ## 🚀 Quick Start
@@ -16,7 +16,7 @@ A full-stack application that provides an AI-powered SQL chat interface with Ora
 - Node.js 18+
 - Python 3.11+
 - Docker & Docker Compose (for containerized deployment)
-- Oracle Database (or use mock mode)
+- PostgreSQL Database (with SSL support)
 - Azure OpenAI API key
 
 ### Option 1: Docker Compose (Recommended)
@@ -111,9 +111,7 @@ Create a `.env` file in the root directory:
 
 ```env
 # Backend Configuration
-ORACLE_USER=your_oracle_username
-ORACLE_PASSWORD=your_oracle_password
-ORACLE_DSN=your_oracle_dsn
+POSTGRES_URL=postgresql://username:password@hostname:port/database
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
 AZURE_OPENAI_KEY=your_azure_openai_key
 JWT_SECRET=your_jwt_secret_key_here
@@ -122,11 +120,11 @@ JWT_SECRET=your_jwt_secret_key_here
 REACT_APP_API_URL=http://localhost:8000
 ```
 
-### Oracle Database Setup
+### PostgreSQL Database Setup
 
-1. **Install Oracle Instant Client** (for local development)
-2. **Configure connection** in `.env`
-3. **Alternative**: Use mock mode by leaving Oracle credentials empty
+1. **Set up PostgreSQL database** with SSL support
+2. **Configure connection** in `.env` using POSTGRES_URL
+3. **Database will be automatically initialized** with required tables
 
 ### Azure OpenAI Setup
 
@@ -164,12 +162,33 @@ print('Admin user created')
 - **Accept/Retry Flow**: Approve queries or provide feedback
 - **Real-time Results**: Execute queries and view data
 - **Error Handling**: Comprehensive error messages and loading states
+- **Schema-based Security**: Users can only query tables in their assigned schema
+- **SELECT-only Safety**: Only SELECT queries are allowed for data protection
 
 ### For Admins
 
 - **User Management**: Add/remove users with roles and schemas
-- **Column Analysis**: Analyze column usage patterns
+- **AI-powered Analysis**: Analyze database usage patterns with Azure OpenAI
+- **Schema Management**: Store full company database schema for admin access
+- **Usage Insights**: Get recommendations on useful/unused tables and indexes
 - **Role-based Access**: Admin-only features and routes
+
+## 🔒 Security Features
+
+### SQL Safety Constraints
+
+- **SELECT-only Queries**: Only SELECT statements are allowed for data safety
+- **Schema Validation**: Generated SQL must reference tables from user's assigned schema
+- **Non-DB Query Rejection**: Non-database related prompts are rejected with friendly errors
+- **SSL Database Connection**: All database connections use SSL encryption
+- **Query Logging**: All SQL queries are logged for audit purposes
+
+### User Access Control
+
+- **Schema-based Permissions**: Each user has access only to their assigned database schema
+- **Admin Schema Access**: Admins can store and access the full company database schema
+- **Required Schema**: All users must have a schema assigned during creation
+- **JWT Authentication**: Secure token-based authentication with role-based access
 
 ## 🛠️ API Endpoints
 
@@ -185,9 +204,10 @@ print('Admin user created')
 
 ### Admin
 
-- `POST /api/admin/add-user` - Add new user
+- `POST /api/admin/add-user` - Add new user (schema required)
 - `POST /api/admin/remove-user` - Remove user
-- `GET /api/admin/analyze-columns` - Analyze column usage
+- `GET /api/admin/analyze-columns` - AI-powered database usage analysis
+- `POST /api/admin/update-admin-schema` - Update admin's full company schema
 
 ## 🐳 Docker Deployment
 
@@ -223,25 +243,31 @@ Modify `docker-compose.yml` for:
 
 ### Common Issues
 
-1. **Oracle Connection Failed**:
+1. **PostgreSQL Connection Failed**:
 
-   - Check Oracle credentials in `.env`
-   - Ensure Oracle Instant Client is installed
+   - Check POSTGRES_URL in `.env`
+   - Ensure database is accessible and SSL is supported
    - Verify network connectivity
 
-2. **Azure OpenAI Errors**:
+2. **SQL Generation Errors**:
+
+   - Ensure user has a valid schema assigned
+   - Check that prompts reference database tables/columns
+   - Verify Azure OpenAI configuration
+
+3. **Azure OpenAI Errors**:
 
    - Verify API key and endpoint
    - Check model deployment status
    - Review rate limits
 
-3. **JWT Token Issues**:
+4. **JWT Token Issues**:
 
    - Clear browser localStorage
    - Check JWT_SECRET configuration
    - Verify token expiration
 
-4. **Frontend Not Loading**:
+5. **Frontend Not Loading**:
    - Check if backend is running on port 8000
    - Verify CORS configuration
    - Check browser console for errors
@@ -250,7 +276,7 @@ Modify `docker-compose.yml` for:
 
 - **Hot Reload**: Both frontend and backend support hot reload in development
 - **API Testing**: Use http://localhost:8000/docs for interactive API testing
-- **Database Inspection**: SQLite database is stored in `backend/app.db`
+- **Database Inspection**: PostgreSQL database tables are automatically created on startup
 - **Logs**: Check console output for detailed error messages
 
 ## 📁 Project Structure
@@ -293,7 +319,3 @@ For issues and questions:
 2. Review the API documentation at `/docs`
 3. Open an issue on GitHub
 4. Check the logs for detailed error messages
-
-
-
-
