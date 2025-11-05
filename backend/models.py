@@ -24,6 +24,20 @@ if DATABASE_URL:
 
 # Configure engine based on database type
 if DATABASE_URL.startswith("postgresql"):
+    # SQLAlchemy will try to import the psycopg2 DBAPI by default for
+    # postgresql URLs. If psycopg (psycopg3) is installed instead of
+    # psycopg2, prefer using the newer dialect by adding the +psycopg
+    # driver hint so SQLAlchemy uses the correct DBAPI.
+    try:
+        import psycopg as _psycopg3  # type: ignore
+        # if URL does not already indicate the driver, add +psycopg
+        if "+" not in DATABASE_URL.split("://", 1)[0]:
+            # Replace only the scheme prefix (postgresql:// -> postgresql+psycopg://)
+            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+    except Exception:
+        # psycopg not available — SQLAlchemy will fall back to psycopg2 when installed
+        pass
+
     engine = create_engine(DATABASE_URL)
 else:
     # SQLite fallback for development

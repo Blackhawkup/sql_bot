@@ -26,15 +26,36 @@ export default function AcceptRetryButtons({ onAccept, onRetry, sql, rows }) {
   }
 
   return (
-    <div className="mt-3 flex gap-2">
-      <button className="btn-primary" onClick={onAccept}>Accept</button>
-      <button className="px-3 py-2 rounded-md border border-white/20 hover:bg-white/10 transition" onClick={onRetry}>Retry</button>
+    <div className="mt-4 flex gap-3">
+      <button 
+        className="px-6 py-2.5 bg-gradient-brand text-white font-semibold rounded-button shadow-button transition-all duration-200 hover:shadow-hover flex items-center gap-2"
+        onClick={onAccept}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+        Accept
+      </button>
+      
+      <button 
+        className="px-6 py-2.5 bg-secondaryGray-300 text-navy-700 font-semibold rounded-button transition-all duration-200 hover:bg-secondaryGray-400 flex items-center gap-2" 
+        onClick={onRetry}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Retry
+      </button>
+      
       {rows && rows.length > 0 && (
         <button 
-          className="px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors text-sm"
+          className="px-6 py-2.5 bg-gradient-teal text-white font-semibold rounded-button shadow-button transition-all duration-200 hover:shadow-teal flex items-center gap-2"
           onClick={downloadExcel}
         >
-          📥 Download Excel
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Download Excel
         </button>
       )}
     </div>

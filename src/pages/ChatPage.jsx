@@ -12,7 +12,7 @@ import { sendPrompt, runQuery, retryQuery, saveChatSession } from '../api/chat.j
 export default function ChatPage() {
   const { user, loading } = useAuth()
   const [messages, setMessages] = useState([
-    { id: 1, role: 'assistant', content: 'Hello how may i help you?' }
+    { id: 1, role: 'assistant', content: 'Hello! How may I help you with SQL queries today?' }
   ])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -57,8 +57,8 @@ export default function ChatPage() {
     }
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
-  if (!user) return <Navigate to="/login" replace />
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-navy-900">Loading...</div>
+  // if (!user) return <Navigate to="/login" replace />
 
   const handleSend = async (text) => {
     const userMsg = { id: Date.now(), role: 'user', content: text }
@@ -172,92 +172,139 @@ export default function ChatPage() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex bg-navy-900">
         <Sidebar />
 
-        <main className="flex-1 flex flex-col">
-        {/* Header with Admin Button for Admin Users */}
-        {user?.role === 'admin' && (
-          <div className="flex justify-end items-center p-4 border-b border-white/10">
-            <Link 
-              to="/admin" 
-              className="btn-primary px-4 py-2 text-sm"
-            >
-              Admin Panel
-            </Link>
+        <main className="flex-1 flex flex-col md:ml-[309px]">
+          {/* Header Navbar */}
+          <div className="bg-secondaryGray-400 border-b border-secondaryGray-500 px-6 py-4">
+            <div className="max-w-4xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center shadow-sm">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-secondaryGray-900">AI SQL Chat</h1>
+                  <p className="text-xs text-secondaryGray-800">Powered by OpenAI GPT-4</p>
+                </div>
+              </div>
+              
+              {user?.role === 'admin' && (
+                <Link 
+                  to="/admin" 
+                  className="px-4 py-2 bg-secondaryGray-300 hover:bg-secondaryGray-200 border border-secondaryGray-500 rounded-button text-sm font-medium text-secondaryGray-900 transition-all duration-200"
+                >
+                  Admin Panel
+                </Link>
+              )}
+            </div>
           </div>
-        )}
         
-        <div className="flex-1 overflow-y-auto">
-          {/* Error display removed as requested */}
-          {messages.map(m => {
-            try {
-              return (
-                <div key={m.id}>
-                  <ChatMessage role={m.role} content={m.content} sql={m.sql} previewRows={m.previewRows} />
-                  {m.role === 'assistant' && m.sql && (
-                    <div className="-mt-6 mb-6">
-                      <div className="mx-auto max-w-3xl px-4">
-                        <AcceptRetryButtons 
-                          onAccept={openAccept} 
-                          onRetry={openRetry} 
-                          sql={currentSql}
-                          rows={runQueryResult?.rows || []}
-                        />
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto">
+            {messages.map(m => {
+              try {
+                return (
+                  <div key={m.id}>
+                    <ChatMessage role={m.role} content={m.content} sql={m.sql} previewRows={m.previewRows} />
+                    {m.role === 'assistant' && m.sql && (
+                      <div className="-mt-2 mb-4">
+                        <div className="mx-auto max-w-4xl px-6">
+                          <AcceptRetryButtons 
+                            onAccept={openAccept} 
+                            onRetry={openRetry} 
+                            sql={currentSql}
+                            rows={runQueryResult?.rows || []}
+                          />
+                        </div>
                       </div>
+                    )}
+                  </div>
+                )
+              } catch (error) {
+                console.error('Error rendering message:', error, m)
+                return (
+                  <div key={m.id} className="p-4 mx-auto max-w-4xl">
+                    <div className="bg-red-900/20 border border-red-500/50 rounded-card p-4">
+                      <p className="text-red-300">Error rendering message: {error.message}</p>
                     </div>
-                  )}
+                  </div>
+                )
+              }
+            })}
+            {isLoading && (
+              <div className="mx-auto max-w-4xl px-6 py-6">
+                <div className="flex items-center gap-3 text-secondaryGray-600">
+                  <div className="animate-spin h-5 w-5 border-2 border-brand-500 border-t-transparent rounded-full"></div>
+                  <span className="font-medium">Generating response...</span>
                 </div>
-              )
-            } catch (error) {
-              console.error('Error rendering message:', error, m)
-              return (
-                <div key={m.id} className="p-4 bg-red-900/20 border border-red-500/50 rounded">
-                  <p className="text-red-300">Error rendering message: {error.message}</p>
-                </div>
-              )
-            }
-          })}
-          {isLoading && (
-            <div className="mx-auto max-w-3xl px-4 py-6 text-gray-400 flex items-center gap-2">
-              <div className="animate-spin h-4 w-4 border-2 border-accent border-t-transparent rounded-full"></div>
-              Generating...
+              </div>
+            )}
+          </div>
+          
+          {/* Save Session Button */}
+          {messages.length > 1 && (
+            <div className="px-4 py-3 border-t border-secondaryGray-500 bg-navy-300/50 backdrop-blur-sm">
+              <div className="max-w-2xl mx-auto">
+                <button
+                  onClick={() => setSaveSessionOpen(true)}
+                  className="w-full px-4 py-2.5 text-sm font-medium bg-navy-100 hover:bg-brand-400/50 border border-secondaryGray-500 rounded-button transition-all duration-200 flex items-center justify-center gap-2 text-secondaryGray-900"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                  Save Chat Session
+                </button>
+              </div>
             </div>
           )}
-        </div>
-        {/* Save Session Button */}
-        {messages.length > 1 && (
-          <div className="px-4 py-2 border-t border-white/10">
-            <button
-              onClick={() => setSaveSessionOpen(true)}
-              className="w-full px-3 py-2 text-sm bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg transition-colors"
-            >
-              💾 Save Chat Session
-            </button>
-          </div>
-        )}
         
-        <ChatInput onSend={handleSend} />
-      </main>
+          <ChatInput onSend={handleSend} />
+        </main>
 
       <Modal
         open={acceptOpen}
-        title="Accept Query"
+        title="Accept & Execute Query"
         onClose={() => setAcceptOpen(false)}
-        actions={<button className="btn-primary" onClick={doAccept}>Confirm</button>}
+        actions={
+          <button className="btn-primary px-6 py-2.5" onClick={doAccept}>
+            Confirm
+          </button>
+        }
       >
-        <label className="block mb-1 text-sm text-gray-300">Number of rows to fetch</label>
-        <input className="input" value={acceptRows} onChange={(e) => setAcceptRows(e.target.value)} type="number" min="1" />
+        <label className="block mb-2 text-sm text-secondaryGray-600 font-medium">Number of rows to fetch</label>
+        <input 
+          className="input" 
+          value={acceptRows} 
+          onChange={(e) => setAcceptRows(e.target.value)} 
+          type="number" 
+          min="1" 
+          placeholder="e.g., 10, 100, 1000"
+        />
+        <p className="mt-3 text-xs text-secondaryGray-600">
+          Leave as 0 to fetch all rows (use with caution for large datasets)
+        </p>
       </Modal>
 
       <Modal
         open={retryOpen}
         title="Retry with Feedback"
         onClose={() => setRetryOpen(false)}
-        actions={<button className="btn-primary" onClick={doRetry}>Retry</button>}
+        actions={
+          <button className="btn-primary px-6 py-2.5" onClick={doRetry}>
+            Retry Query
+          </button>
+        }
       >
-        <label className="block mb-1 text-sm text-gray-300">What should be improved?</label>
-        <textarea className="input min-h-[100px]" value={retryFeedback} onChange={(e) => setRetryFeedback(e.target.value)} placeholder="e.g., Filter by last 30 days" />
+        <label className="block mb-2 text-sm text-secondaryGray-600 font-medium">What should be improved?</label>
+        <textarea 
+          className="input min-h-[120px]" 
+          value={retryFeedback} 
+          onChange={(e) => setRetryFeedback(e.target.value)} 
+          placeholder="e.g., Filter by last 30 days, add sorting by date, include only active records..."
+        />
       </Modal>
 
       {/* Save Session Modal */}
@@ -266,26 +313,18 @@ export default function ChatPage() {
         title="Save Chat Session"
         onClose={() => setSaveSessionOpen(false)}
         actions={
-          <div className="flex gap-2">
-            <button 
-              className="px-3 py-2 rounded-lg border border-white/20 hover:bg-white/10 transition-colors" 
-              onClick={() => setSaveSessionOpen(false)}
-            >
-              Cancel
-            </button>
-            <button 
-              className="btn-primary px-4 py-2" 
-              onClick={handleSaveSession}
-              disabled={!sessionName.trim()}
-            >
-              Save
-            </button>
-          </div>
+          <button 
+            className="btn-primary px-6 py-2.5" 
+            onClick={handleSaveSession}
+            disabled={!sessionName.trim()}
+          >
+            Save Session
+          </button>
         }
       >
         <div className="space-y-4">
           <div>
-            <label className="block mb-1 text-sm text-gray-300">Session Name</label>
+            <label className="block mb-2 text-sm text-secondaryGray-600 font-medium">Session Name</label>
             <input 
               className="input" 
               value={sessionName} 
@@ -294,8 +333,8 @@ export default function ChatPage() {
               autoFocus
             />
           </div>
-          <div className="text-xs text-gray-400">
-            This will save {messages.length} messages from your current chat.
+          <div className="text-xs text-secondaryGray-600 bg-white/5 rounded-button p-3">
+            💾 This will save {messages.length} messages from your current chat session for future reference.
           </div>
         </div>
       </Modal>

@@ -2,10 +2,25 @@
 Database initialization and migration for SQL Bot with Neon PostgreSQL
 """
 import os
-import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from dotenv import load_dotenv
 from typing import List, Dict, Any
+
+# Support psycopg2 or psycopg (psycopg3). Use whichever is available at runtime.
+try:
+    import psycopg2
+    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+    HAS_PSYCOPG2 = True
+except Exception:
+    psycopg2 = None
+    ISOLATION_LEVEL_AUTOCOMMIT = None
+    HAS_PSYCOPG2 = False
+
+try:
+    import psycopg as psycopg3
+    HAS_PSYCOPG3 = True
+except Exception:
+    psycopg3 = None
+    HAS_PSYCOPG3 = False
 
 # Load environment variables
 load_dotenv()
@@ -30,8 +45,13 @@ def get_postgres_connection():
         postgres_url = postgres_url[1:-1]  # Remove surrounding quotes
     
     print(f"Connecting to: {postgres_url[:50]}...")  # Show first 50 chars for debugging
-    
-    return psycopg2.connect(postgres_url)
+
+    if HAS_PSYCOPG2:
+        return psycopg2.connect(postgres_url)
+    if HAS_PSYCOPG3:
+        return psycopg3.connect(postgres_url)
+
+    raise ConnectionError("No PostgreSQL driver installed (psycopg2 or psycopg)")
 
 
 def create_tables():
@@ -122,8 +142,17 @@ def create_tables():
     connection = None
     try:
         connection = get_postgres_connection()
-        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        
+        # Ensure autocommit for DDL operations depending on driver
+        try:
+            if HAS_PSYCOPG2 and ISOLATION_LEVEL_AUTOCOMMIT is not None:
+                connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            elif HAS_PSYCOPG3:
+                # psycopg3 supports autocommit attribute
+                connection.autocommit = True
+        except Exception:
+            # If setting autocommit fails, continue; operations may still work
+            pass
+
         with connection.cursor() as cursor:
             # Only drop tables if RESET_DB_ON_STARTUP is true (explicit)
             if RESET_DB_ON_STARTUP:
@@ -199,7 +228,7 @@ def create_tables():
                 print(f"WARNING: Could not create triggers: {e}")
                 print("NOTE: Triggers skipped due to error")
             
-            # Commit the changes if not using autocommit (we set autocommit, but call commit to be safe)
+            # Commit the changes if the driver requires it (safe to call)
             try:
                 connection.commit()
             except Exception:

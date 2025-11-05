@@ -3,13 +3,29 @@ import React from 'react'
 export default function Modal({ open, title, children, onClose, actions }) {
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative z-10 w-[90vw] max-w-lg rounded-2xl border border-white/10 bg-gradient-to-br from-[#1f2937]/80 to-[#0f172a]/60 p-6 shadow-xl">
-        {title && <h3 className="mb-4 text-lg font-semibold">{title}</h3>}
-        <div>{children}</div>
-        <div className="mt-6 flex gap-2 justify-end">
-          <button className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10 transition-colors" onClick={onClose}>Close</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg rounded-[20px] border border-white/10 bg-navy-800 shadow-card">
+        {/* Header */}
+        {title && (
+          <div className="px-6 pt-6 pb-4 border-b border-white/10">
+            <h3 className="text-xl font-bold text-white">{title}</h3>
+          </div>
+        )}
+        
+        {/* Content */}
+        <div className="px-6 py-5">
+          {children}
+        </div>
+        
+        {/* Actions */}
+        <div className="px-6 pb-6 pt-2 flex gap-3 justify-end">
+          <button 
+            className="px-5 py-2.5 rounded-button border border-white/20 text-white font-medium hover:bg-white/10 transition-all duration-200" 
+            onClick={onClose}
+          >
+            Close
+          </button>
           {actions}
         </div>
       </div>
