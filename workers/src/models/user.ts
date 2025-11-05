@@ -59,7 +59,26 @@ export async function createUser(
   adminSchema?: string
 ): Promise<User> {
   try {
-    const passwordHash = await bcrypt.hash(password, 10);
+    // Use HMAC-SHA256 to match Python backend
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(username),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      encoder.encode(password)
+    );
+    
+    // Convert to hex string
+    const hashArray = Array.from(new Uint8Array(signature));
+    const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
     const sql = `
       INSERT INTO users (username, password_hash, role, schema, admin_schema)
       VALUES ('${username}', '${passwordHash}', '${role}', ${schema ? `'${schema}'` : 'NULL'}, ${adminSchema ? `'${adminSchema}'` : 'NULL'})
@@ -99,7 +118,27 @@ export async function updateUserInfo(
     
     if (data.username) updates.push(`username = '${data.username}'`);
     if (data.password) {
-      const hash = await bcrypt.hash(data.password, 10);
+      // Use HMAC-SHA256 to match Python backend
+      const encoder = new TextEncoder();
+      const user = await getUserById(env, userId);
+      if (!user) throw new Error('User not found');
+      
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(user.username),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      
+      const signature = await crypto.subtle.sign(
+        'HMAC',
+        key,
+        encoder.encode(data.password)
+      );
+      
+      const hashArray = Array.from(new Uint8Array(signature));
+      const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
       updates.push(`password_hash = '${hash}'`);
     }
     if (data.role) updates.push(`role = '${data.role}'`);
@@ -121,11 +160,34 @@ export async function updateUserInfo(
 }
 
 export async function verifyPassword(
+  username: string,
   password: string,
   hash: string
 ): Promise<boolean> {
   try {
-    return await bcrypt.compare(password, hash);
+    // Use HMAC-SHA256 to match Python backend implementation
+    // Python: hmac.new(username.encode(), password.encode(), hashlib.sha256).hexdigest()
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(username),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      encoder.encode(password)
+    );
+    
+    // Convert to hex string
+    const hashArray = Array.from(new Uint8Array(signature));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // Compare with stored hash
+    return hashHex === hash;
   } catch (error) {
     console.error('Password verification error:', error);
     return false;

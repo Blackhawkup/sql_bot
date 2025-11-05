@@ -1,5 +1,5 @@
 const API_BASE = process.env.NODE_ENV === 'production' 
-  ? 'https://sql-bot-worker.adudeja-be23.workers.dev' 
+  ? 'https://sql-bot-teal.vercel.app' 
   : 'http://localhost:8000'
 
 export async function loginApi(username, password) {

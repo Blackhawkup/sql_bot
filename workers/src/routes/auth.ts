@@ -28,7 +28,7 @@ authRouter.post(
       }
 
       // Verify password
-      const isValid = await verifyPassword(password, user.password_hash);
+      const isValid = await verifyPassword(username, password, user.password_hash);
       
       if (!isValid) {
         return c.json({ error: 'Invalid credentials' }, 401);

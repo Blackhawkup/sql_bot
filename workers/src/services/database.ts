@@ -1,18 +1,22 @@
 import type { Bindings } from '../index';
+import postgres from 'postgres';
 
-// PostgreSQL connection using node-postgres compatible API
-// For Cloudflare Workers, we'll use Hyperdrive or direct connections
+// Cache connections per request
+let sqlCache: any = null;
 
-async function getConnection(env: Bindings) {
-  // If using Hyperdrive binding
-  if (env.HYPERDRIVE) {
-    return env.HYPERDRIVE;
+function getSQL(env: Bindings) {
+  if (sqlCache) return sqlCache;
+  
+  if (!env.HYPERDRIVE) {
+    throw new Error('Hyperdrive binding not configured');
   }
 
-  // Direct connection using POSTGRES_URL
-  // Note: Direct TCP connections from Workers require Hyperdrive or external proxy
-  // For this example, we'll use fetch to a proxy endpoint or Hyperdrive
-  return { connectionString: env.POSTGRES_URL };
+  // Create postgres client using Hyperdrive connection string
+  sqlCache = postgres(env.HYPERDRIVE.connectionString, {
+    prepare: false, // Disable prepared statements for Hyperdrive
+  });
+  
+  return sqlCache;
 }
 
 export async function runQuery(
@@ -27,31 +31,12 @@ export async function runQuery(
       query = `${sql.trim().replace(/;$/, '')} LIMIT ${limit};`;
     }
 
-    // For Cloudflare Workers, we need to use Hyperdrive or a proxy
-    // This is a simplified example - in production, use Hyperdrive binding
+    const db = getSQL(env);
     
-    // Using Hyperdrive (recommended approach)
-    if (env.HYPERDRIVE) {
-      // Hyperdrive provides a postgres-compatible connection
-      // You would use a postgres client here
-      // For now, this is a placeholder
-      throw new Error('Please configure Hyperdrive binding for database access');
-    }
-
-    // Alternative: Use a REST API proxy to your database
-    // This would require setting up a separate endpoint
-    const response = await fetch(`${env.POSTGRES_URL}/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Database query failed: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.rows || [];
+    // Execute raw SQL query
+    const result = await db.unsafe(query);
+    
+    return result || [];
   } catch (error: any) {
     console.error('Query execution error:', error);
     throw new Error(`Query failed: ${error.message}`);
