@@ -1,0 +1,33 @@
+name = "sql-bot-worker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables (set these in Cloudflare Dashboard or via wrangler secret)
+[vars]
+ENVIRONMENT = "production"
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# - JWT_SECRET
+# - POSTGRES_URL
+# - AZURE_OPENAI_ENDPOINT
+# - AZURE_OPENAI_KEY
+
+# Hyperdrive binding for PostgreSQL (Required for database access)
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "1a60205bbdd244ecb14ab4c0ae6d974f"
+
+# KV namespace for caching (optional)
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your-kv-id"
+
+# Note: CPU limits removed for Free plan compatibility
+# Free plan includes:
+# - 100,000 requests/day
+# - 10ms CPU time per request
+# - 128 MB memory
+# 
+# To upgrade to Paid plan ($5/month) for 50ms CPU time:
+# Visit: https://dash.cloudflare.com/9fb544975ec7f4e4af250523e33f250e/workers/plans

@@ -58,7 +58,7 @@ export default function ChatPage() {
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-navy-900">Loading...</div>
-  if (!user) return <Navigate to="/login" replace />
+  // if (!user) return <Navigate to="/login" replace />
 
   const handleSend = async (text) => {
     const userMsg = { id: Date.now(), role: 'user', content: text }

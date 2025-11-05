@@ -1,0 +1,265 @@
+import type { Bindings } from '../index';
+import bcrypt from 'bcryptjs';
+import { runQuery } from '../services/database';
+
+export interface User {
+  id: number;
+  username: string;
+  password_hash: string;
+  role: string;
+  schema: string | null;
+  admin_schema: string | null;
+  created_at: string;
+}
+
+export async function getUserByUsername(
+  env: Bindings,
+  username: string
+): Promise<User | null> {
+  try {
+    const sql = `SELECT * FROM users WHERE username = '${username}' LIMIT 1;`;
+    const rows = await runQuery(env, sql);
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Get user error:', error);
+    return null;
+  }
+}
+
+export async function getUserById(
+  env: Bindings,
+  userId: number
+): Promise<User | null> {
+  try {
+    const sql = `SELECT * FROM users WHERE id = ${userId} LIMIT 1;`;
+    const rows = await runQuery(env, sql);
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Get user by ID error:', error);
+    return null;
+  }
+}
+
+export async function getAllUsers(env: Bindings): Promise<User[]> {
+  try {
+    const sql = `SELECT id, username, role, schema, admin_schema, created_at FROM users ORDER BY created_at DESC;`;
+    return await runQuery(env, sql);
+  } catch (error) {
+    console.error('Get all users error:', error);
+    return [];
+  }
+}
+
+export async function createUser(
+  env: Bindings,
+  username: string,
+  password: string,
+  role: string,
+  schema?: string,
+  adminSchema?: string
+): Promise<User> {
+  try {
+    const passwordHash = await bcrypt.hash(password, 10);
+    const sql = `
+      INSERT INTO users (username, password_hash, role, schema, admin_schema)
+      VALUES ('${username}', '${passwordHash}', '${role}', ${schema ? `'${schema}'` : 'NULL'}, ${adminSchema ? `'${adminSchema}'` : 'NULL'})
+      RETURNING *;
+    `;
+    const rows = await runQuery(env, sql);
+    return rows[0];
+  } catch (error: any) {
+    throw new Error(`Failed to create user: ${error.message}`);
+  }
+}
+
+export async function deleteUser(env: Bindings, username: string): Promise<boolean> {
+  try {
+    const sql = `DELETE FROM users WHERE username = '${username}';`;
+    await runQuery(env, sql);
+    return true;
+  } catch (error) {
+    console.error('Delete user error:', error);
+    return false;
+  }
+}
+
+export async function updateUserInfo(
+  env: Bindings,
+  userId: number,
+  data: Partial<{
+    username: string;
+    password: string;
+    role: string;
+    schema: string;
+    admin_schema: string;
+  }>
+): Promise<User> {
+  try {
+    const updates: string[] = [];
+    
+    if (data.username) updates.push(`username = '${data.username}'`);
+    if (data.password) {
+      const hash = await bcrypt.hash(data.password, 10);
+      updates.push(`password_hash = '${hash}'`);
+    }
+    if (data.role) updates.push(`role = '${data.role}'`);
+    if (data.schema !== undefined) updates.push(`schema = ${data.schema ? `'${data.schema}'` : 'NULL'}`);
+    if (data.admin_schema !== undefined) updates.push(`admin_schema = ${data.admin_schema ? `'${data.admin_schema}'` : 'NULL'}`);
+
+    const sql = `
+      UPDATE users
+      SET ${updates.join(', ')}
+      WHERE id = ${userId}
+      RETURNING *;
+    `;
+    
+    const rows = await runQuery(env, sql);
+    return rows[0];
+  } catch (error: any) {
+    throw new Error(`Failed to update user: ${error.message}`);
+  }
+}
+
+export async function verifyPassword(
+  password: string,
+  hash: string
+): Promise<boolean> {
+  try {
+    return await bcrypt.compare(password, hash);
+  } catch (error) {
+    console.error('Password verification error:', error);
+    return false;
+  }
+}
+
+// Chat and logging functions
+export async function logChatMessage(
+  env: Bindings,
+  username: string,
+  role: string,
+  content: string,
+  sql?: string
+): Promise<void> {
+  try {
+    const sqlQuery = `
+      INSERT INTO chat_messages (username, role, content, sql_query)
+      VALUES ('${username}', '${role}', '${content.replace(/'/g, "''")}', ${sql ? `'${sql.replace(/'/g, "''")}'` : 'NULL'});
+    `;
+    await runQuery(env, sqlQuery);
+  } catch (error) {
+    console.error('Log chat message error:', error);
+  }
+}
+
+export async function logQuery(
+  env: Bindings,
+  username: string,
+  sql: string,
+  status: string,
+  rowsAffected: number = 0,
+  errorMessage?: string
+): Promise<void> {
+  try {
+    const sqlQuery = `
+      INSERT INTO query_logs (username, query, status, rows_affected, error_message)
+      VALUES ('${username}', '${sql.replace(/'/g, "''")}', '${status}', ${rowsAffected}, ${errorMessage ? `'${errorMessage.replace(/'/g, "''")}'` : 'NULL'});
+    `;
+    await runQuery(env, sqlQuery);
+  } catch (error) {
+    console.error('Log query error:', error);
+  }
+}
+
+export async function getChatMessages(
+  env: Bindings,
+  username: string,
+  limit: number = 50
+): Promise<any[]> {
+  try {
+    const sql = `
+      SELECT * FROM chat_messages
+      WHERE username = '${username}'
+      ORDER BY created_at DESC
+      LIMIT ${limit};
+    `;
+    return await runQuery(env, sql);
+  } catch (error) {
+    console.error('Get chat messages error:', error);
+    return [];
+  }
+}
+
+export async function saveChatSession(
+  env: Bindings,
+  username: string,
+  sessionName: string,
+  messages: any[]
+): Promise<number> {
+  try {
+    const sql = `
+      INSERT INTO chat_sessions (username, session_name, messages)
+      VALUES ('${username}', '${sessionName.replace(/'/g, "''")}', '${JSON.stringify(messages).replace(/'/g, "''")}')
+      RETURNING id;
+    `;
+    const rows = await runQuery(env, sql);
+    return rows[0].id;
+  } catch (error: any) {
+    throw new Error(`Failed to save session: ${error.message}`);
+  }
+}
+
+export async function getChatSessions(
+  env: Bindings,
+  username: string,
+  limit: number = 50
+): Promise<any[]> {
+  try {
+    const sql = `
+      SELECT * FROM chat_sessions
+      WHERE username = '${username}'
+      ORDER BY created_at DESC
+      LIMIT ${limit};
+    `;
+    return await runQuery(env, sql);
+  } catch (error) {
+    console.error('Get chat sessions error:', error);
+    return [];
+  }
+}
+
+export async function getChatSession(
+  env: Bindings,
+  sessionId: number,
+  username: string
+): Promise<any | null> {
+  try {
+    const sql = `
+      SELECT * FROM chat_sessions
+      WHERE id = ${sessionId} AND username = '${username}'
+      LIMIT 1;
+    `;
+    const rows = await runQuery(env, sql);
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Get chat session error:', error);
+    return null;
+  }
+}
+
+export async function deleteChatSession(
+  env: Bindings,
+  sessionId: number,
+  username: string
+): Promise<boolean> {
+  try {
+    const sql = `
+      DELETE FROM chat_sessions
+      WHERE id = ${sessionId} AND username = '${username}';
+    `;
+    await runQuery(env, sql);
+    return true;
+  } catch (error) {
+    console.error('Delete chat session error:', error);
+    return false;
+  }
+}

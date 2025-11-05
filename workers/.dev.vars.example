@@ -1,0 +1,7 @@
+# Local development environment variables
+# Copy this file to .dev.vars and fill in your actual values
+
+JWT_SECRET=your-jwt-secret-key-here
+POSTGRES_URL=postgresql://username:password@host:port/database?sslmode=require
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
+AZURE_OPENAI_KEY=your-azure-openai-key-here
