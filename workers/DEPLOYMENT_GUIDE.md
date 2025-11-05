@@ -1,6 +1,7 @@
 # 🚀 Complete Cloudflare Workers Deployment Guide
 
 ## Table of Contents
+
 1. [Prerequisites](#prerequisites)
 2. [Quick Start](#quick-start)
 3. [Detailed Setup](#detailed-setup)
@@ -35,6 +36,7 @@ npm install
 \`\`\`
 
 This will install:
+
 - `hono` - Web framework for Workers
 - `@hono/zod-validator` - Request validation
 - `zod` - Schema validation
@@ -57,8 +59,11 @@ This opens your browser for authentication. Click **"Allow"** to grant access.
 First, get your Neon connection string from `../.env`:
 
 \`\`\`powershell
+
 # Example format:
+
 # postgresql://neondb_owner:YOUR_PASSWORD@ep-snowy-recipe-xxxxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+
 \`\`\`
 
 Create Hyperdrive:
@@ -74,7 +79,9 @@ npx wrangler hyperdrive create sql-bot-db --connection-string="YOUR_FULL_NEON_CO
 Edit `wrangler.toml` and uncomment the Hyperdrive section:
 
 \`\`\`toml
+
 # Uncomment and add your Hyperdrive ID:
+
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = "YOUR_HYPERDRIVE_ID_FROM_STEP_3"
@@ -83,21 +90,31 @@ id = "YOUR_HYPERDRIVE_ID_FROM_STEP_3"
 ### 5. Set Production Secrets
 
 \`\`\`powershell
+
 # JWT Secret (use the same one from your .env file)
+
 npx wrangler secret put JWT_SECRET
+
 # When prompted, paste: your-secret-key-here
 
 # PostgreSQL URL (your full Neon connection string)
+
 npx wrangler secret put POSTGRES_URL
+
 # When prompted, paste: postgresql://neondb_owner:...
 
 # Azure OpenAI Endpoint
+
 npx wrangler secret put AZURE_OPENAI_ENDPOINT
+
 # When prompted, paste: https://your-resource.openai.azure.com
 
 # Azure OpenAI Key
+
 npx wrangler secret put AZURE_OPENAI_KEY
+
 # When prompted, paste: your-azure-key-here
+
 \`\`\`
 
 ### 6. Test Locally (Optional)
@@ -132,6 +149,7 @@ npm run deploy
 ### Understanding the Architecture
 
 **Original Backend (FastAPI)**
+
 ```
 Frontend → Vercel/Railway → FastAPI → PostgreSQL
                 ↓
@@ -139,6 +157,7 @@ Frontend → Vercel/Railway → FastAPI → PostgreSQL
 ```
 
 **New Workers Backend (Hono.js)**
+
 ```
 Frontend → Cloudflare Edge → Hono Worker → Hyperdrive → PostgreSQL
                 ↓
@@ -170,7 +189,9 @@ Cloudflare Workers cannot make direct TCP connections to databases. Hyperdrive i
 
 1. **Find your Neon connection string**:
    \`\`\`powershell
+
    # In your .env file, look for:
+
    POSTGRES_URL=postgresql://neondb_owner:npg_xxx@ep-xxx.neon.tech/neondb?sslmode=require
    \`\`\`
 
@@ -182,7 +203,7 @@ Cloudflare Workers cannot make direct TCP connections to databases. Hyperdrive i
 3. **Note the output**:
    \`\`\`
    Successfully created a new Hyperdrive configuration!
-   
+
    [[hyperdrive]]
    binding = "HYPERDRIVE"
    id = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
@@ -192,7 +213,7 @@ Cloudflare Workers cannot make direct TCP connections to databases. Hyperdrive i
    \`\`\`toml
    [[hyperdrive]]
    binding = "HYPERDRIVE"
-   id = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"  # Your ID here
+   id = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6" # Your ID here
    \`\`\`
 
 ### Verify Hyperdrive
@@ -230,7 +251,9 @@ You'll see output like:
 
 \`\`\`
 ⛅️ wrangler 3.22.1
-------------------
+
+---
+
 Your worker has been deployed!
 📎 https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev
 \`\`\`
@@ -264,8 +287,8 @@ Edit `src/api/index.js`:
 
 \`\`\`javascript
 const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev'  // ← Update this
-  : 'http://localhost:8787';  // For local worker development
+? 'https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev' // ← Update this
+: 'http://localhost:8787'; // For local worker development
 
 export default API_BASE_URL;
 \`\`\`
@@ -294,18 +317,17 @@ The frontend now talks to your Cloudflare Worker backend!
 ### 1. Test Authentication
 
 \`\`\`powershell
-curl -X POST https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev/auth/login `
-  -H "Content-Type: application/json" `
-  -d '{"username":"admin","password":"your-password"}'
+curl -X POST https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev/auth/login `  -H "Content-Type: application/json"`
+-d '{"username":"admin","password":"your-password"}'
 \`\`\`
 
 Expected:
 \`\`\`json
 {
-  "status": "ok",
-  "token": "eyJhbGc...",
-  "username": "admin",
-  "role": "admin"
+"status": "ok",
+"token": "eyJhbGc...",
+"username": "admin",
+"role": "admin"
 }
 \`\`\`
 
@@ -314,9 +336,8 @@ Expected:
 \`\`\`powershell
 $token = "YOUR_TOKEN_FROM_ABOVE"
 
-curl -X POST https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev/api/generate-sql `
-  -H "Authorization: Bearer $token" `
-  -H "Content-Type: application/json" `
+curl -X POST https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev/api/generate-sql `  -H "Authorization: Bearer $token"`
+-H "Content-Type: application/json" `
   -d '{"prompt":"Show me all users"}'
 \`\`\`
 
@@ -350,6 +371,7 @@ npm install
 **Cause:** Hyperdrive not configured in wrangler.toml
 
 **Solution:**
+
 1. Run `npx wrangler hyperdrive list`
 2. Copy your Hyperdrive ID
 3. Add to `wrangler.toml`:
@@ -362,6 +384,7 @@ npm install
 ### Issue: "Database connection failed"
 
 **Check list:**
+
 - ✅ Hyperdrive is created: `npx wrangler hyperdrive list`
 - ✅ POSTGRES_URL secret is set: `npx wrangler secret list`
 - ✅ Neon database is online (check Neon dashboard)
@@ -374,27 +397,30 @@ npm install
 **Solution:**
 \`\`\`powershell
 npx wrangler secret put JWT_SECRET
+
 # Enter the SAME secret from your .env file
+
 \`\`\`
 
 ### Issue: "Azure OpenAI timeout"
 
 **Solution:**
+
 - Verify endpoint and key are correct
 - Check Azure OpenAI deployment is active
 - Test endpoint directly:
   \`\`\`powershell
-  curl -X POST "YOUR_ENDPOINT/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-06-01" `
-    -H "api-key: YOUR_KEY" `
-    -H "Content-Type: application/json" `
-    -d '{"messages":[{"role":"user","content":"Hi"}]}'
-  \`\`\`
+  curl -X POST "YOUR_ENDPOINT/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-06-01" `  -H "api-key: YOUR_KEY"`
+  -H "Content-Type: application/json" `
+  -d '{"messages":[{"role":"user","content":"Hi"}]}'
+\`\`\`
 
 ### Issue: "Worker exceeds 10ms CPU time"
 
 **Cause:** Free tier has 10ms CPU limit per request
 
 **Solutions:**
+
 1. Optimize database queries (add indexes)
 2. Use KV caching for repeated queries
 3. Upgrade to paid Workers plan ($5/month = 50ms CPU time)
@@ -402,6 +428,7 @@ npx wrangler secret put JWT_SECRET
 ### Check Worker Status
 
 View in Cloudflare Dashboard:
+
 1. Go to https://dash.cloudflare.com
 2. Click **Workers & Pages**
 3. Click **sql-bot-worker**
@@ -462,17 +489,20 @@ To add caching:
 ## Cost Analysis
 
 ### Free Tier (Sufficient for most projects)
+
 - ✅ 100,000 requests/day
 - ✅ 10ms CPU time per request
 - ✅ 128MB memory
 - ✅ Unlimited bandwidth
 
 **Realistic capacity:**
+
 - ~3 million requests/month
 - 300 concurrent users
 - Sub-100ms response times worldwide
 
 ### Paid Tier ($5/month)
+
 - ✅ 10 million requests/month (then $0.50/million)
 - ✅ 50ms CPU time per request
 - ✅ 128MB memory
@@ -480,11 +510,11 @@ To add caching:
 
 ### Cost Comparison
 
-| Platform | Free Tier | Paid | Performance |
-|----------|-----------|------|-------------|
-| **Cloudflare Workers** | 100k req/day | $5/mo | ⚡ Excellent |
-| Vercel | 100 GB-hrs | $20/mo | 🟡 Good |
-| Railway | $5 free credit | $5/mo | 🟢 Good |
+| Platform               | Free Tier      | Paid   | Performance  |
+| ---------------------- | -------------- | ------ | ------------ |
+| **Cloudflare Workers** | 100k req/day   | $5/mo  | ⚡ Excellent |
+| Vercel                 | 100 GB-hrs     | $20/mo | 🟡 Good      |
+| Railway                | $5 free credit | $5/mo  | 🟢 Good      |
 
 ---
 

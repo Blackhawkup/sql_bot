@@ -103,6 +103,7 @@ npm run deploy
 ```
 
 After deployment, Wrangler will show your worker URL:
+
 ```
 https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev
 ```
@@ -114,6 +115,7 @@ https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev
 Hyperdrive is Cloudflare's database connector that pools connections and provides low latency.
 
 **Pros:**
+
 - Managed connection pooling
 - Optimized for Workers
 - Built-in caching
@@ -149,9 +151,10 @@ Once deployed, your API will be available at:
 After deployment, update your frontend API base URL in `src/api/index.js`:
 
 ```javascript
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev'
-  : 'http://localhost:8787';
+const API_BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://sql-bot-worker.YOUR_SUBDOMAIN.workers.dev"
+    : "http://localhost:8787";
 ```
 
 ## 📊 Monitoring
@@ -175,11 +178,13 @@ https://dash.cloudflare.com → Workers & Pages → sql-bot-worker
 ## 💰 Pricing
 
 Cloudflare Workers Free Tier:
+
 - 100,000 requests/day
 - 10ms CPU time per request
 - 128MB memory
 
 Paid Plan ($5/month):
+
 - 10 million requests/month (then $0.50/million)
 - 50ms CPU time per request
 - 128MB memory
