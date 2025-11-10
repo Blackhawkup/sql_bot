@@ -30,7 +30,7 @@ export default function LoginPage() {
         {/* Footer Text */}
         <div className="text-center mt-6">
           <p className="text-sm text-secondaryGray-800">
-            Powered by OpenAI GPT-4 • Secure Database Access
+            The login creds for each team are different as database are different for each one, ping us / contact us for personal creds for your team (9582608000/9891943809)
           </p>
         </div>
       </div>

@@ -11,15 +11,21 @@ function getAuthHeaders() {
 }
 
 export async function sendPrompt(prompt, schema = null) {
+  const body = { prompt };
+  if (schema !== null) {
+    body.schema = schema;
+  }
+  
   const response = await fetch(`${API_BASE}/api/generate-sql`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ prompt, schema })
+    credentials: 'omit',
+    body: JSON.stringify(body)
   })
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to generate SQL')
+    throw new Error(error.detail || error.error || error.message || 'Failed to generate SQL')
   }
   
   const data = await response.json()
@@ -27,15 +33,21 @@ export async function sendPrompt(prompt, schema = null) {
 }
 
 export async function runQuery(sql, limit = null) {
+  const body = { sql };
+  if (limit !== null) {
+    body.limit = limit;
+  }
+  
   const response = await fetch(`${API_BASE}/api/run-query`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ sql, limit })
+    credentials: 'omit',
+    body: JSON.stringify(body)
   })
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to run query')
+    throw new Error(error.detail || error.error || error.message || 'Failed to run query')
   }
   
   const data = await response.json()
@@ -43,18 +55,21 @@ export async function runQuery(sql, limit = null) {
 }
 
 export async function retryQuery(prompt, feedback) {
-  return sendPrompt(prompt, feedback)
+  // Combine the original prompt with the feedback
+  const combinedPrompt = `${prompt}\n\nAdditional requirements: ${feedback}`;
+  return sendPrompt(combinedPrompt);
 }
 
 export async function getChatHistory() {
   const response = await fetch(`${API_BASE}/api/chat-history`, {
     method: 'GET',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    credentials: 'omit'
   })
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to get chat history')
+    throw new Error(error.detail || error.error || error.message || 'Failed to get chat history')
   }
   
   const data = await response.json()
@@ -65,6 +80,7 @@ export async function saveChatSession(sessionName, messages) {
   const response = await fetch(`${API_BASE}/api/save-session`, {
     method: 'POST',
     headers: getAuthHeaders(),
+    credentials: 'omit',
     body: JSON.stringify({
       session_name: sessionName,
       messages: messages
@@ -73,7 +89,7 @@ export async function saveChatSession(sessionName, messages) {
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to save chat session')
+    throw new Error(error.detail || error.error || error.message || 'Failed to save chat session')
   }
   
   const data = await response.json()
@@ -83,12 +99,13 @@ export async function saveChatSession(sessionName, messages) {
 export async function getChatSessions() {
   const response = await fetch(`${API_BASE}/api/chat-sessions`, {
     method: 'GET',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    credentials: 'omit'
   })
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to get chat sessions')
+    throw new Error(error.detail || error.error || error.message || 'Failed to get chat sessions')
   }
   
   const data = await response.json()
@@ -98,12 +115,13 @@ export async function getChatSessions() {
 export async function getChatSession(sessionId) {
   const response = await fetch(`${API_BASE}/api/chat-session/${sessionId}`, {
     method: 'GET',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    credentials: 'omit'
   })
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to get chat session')
+    throw new Error(error.detail || error.error || error.message || 'Failed to get chat session')
   }
   
   const data = await response.json()
@@ -113,12 +131,13 @@ export async function getChatSession(sessionId) {
 export async function deleteChatSession(sessionId) {
   const response = await fetch(`${API_BASE}/api/chat-session/${sessionId}`, {
     method: 'DELETE',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    credentials: 'omit'
   })
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to delete chat session')
+    throw new Error(error.detail || error.error || error.message || 'Failed to delete chat session')
   }
   
   const data = await response.json()

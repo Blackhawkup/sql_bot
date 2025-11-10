@@ -1,22 +1,21 @@
 import type { Bindings } from '../index';
 import postgres from 'postgres';
 
-// Cache connections per request
-let sqlCache: any = null;
-
+// Don't cache globally in Workers - create new connection per request
 function getSQL(env: Bindings) {
-  if (sqlCache) return sqlCache;
-  
   if (!env.HYPERDRIVE) {
     throw new Error('Hyperdrive binding not configured');
   }
 
   // Create postgres client using Hyperdrive connection string
-  sqlCache = postgres(env.HYPERDRIVE.connectionString, {
+  const sql = postgres(env.HYPERDRIVE.connectionString, {
     prepare: false, // Disable prepared statements for Hyperdrive
+    max: 1, // Single connection for Workers
+    idle_timeout: 20,
+    connect_timeout: 10,
   });
   
-  return sqlCache;
+  return sql;
 }
 
 export async function runQuery(

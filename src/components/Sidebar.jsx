@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getChatHistory, getChatSessions, getChatSession, deleteChatSession } from '../api/chat.js'
 
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const [chatSessions, setChatSessions] = useState([])
   const [loading, setLoading] = useState(false)
   const isActive = (path) => location.pathname === path
@@ -19,12 +20,13 @@ export default function Sidebar() {
   // Listen for session refresh events
   useEffect(() => {
     const handleRefreshSessions = () => {
+      console.log('Refreshing chat sessions...')
       loadChatSessions()
     }
 
     window.addEventListener('refreshSessions', handleRefreshSessions)
     return () => window.removeEventListener('refreshSessions', handleRefreshSessions)
-  }, [])
+  }, [user])
 
   const loadChatSessions = async () => {
     try {
@@ -145,7 +147,10 @@ export default function Sidebar() {
         {user ? (
           <button 
             className="w-full px-4 py-2.5 rounded-button border border-secondaryGray-300 dark:border-white/20 text-secondaryGray-700 dark:text-white hover:bg-secondaryGray-300/50 dark:hover:bg-white/10 transition-all duration-200 font-medium text-sm" 
-            onClick={logout}
+            onClick={() => {
+              logout()
+              navigate('/login')
+            }}
           >
             Logout
           </button>

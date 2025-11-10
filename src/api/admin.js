@@ -11,15 +11,24 @@ function getAuthHeaders() {
 }
 
 export async function addUser(username, password, role = 'user', schema = null, admin_schema = null) {
+  const body = { username, password, role };
+  if (schema !== null) {
+    body.schema = schema;
+  }
+  if (admin_schema !== null) {
+    body.admin_schema = admin_schema;
+  }
+  
   const response = await fetch(`${API_BASE}/api/admin/add-user`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ username, password, role, schema, admin_schema })
+    credentials: 'omit',
+    body: JSON.stringify(body)
   })
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to add user')
+    throw new Error(error.detail || error.error || error.message || 'Failed to add user')
   }
   
   const data = await response.json()
@@ -30,12 +39,13 @@ export async function removeUser(username) {
   const response = await fetch(`${API_BASE}/api/admin/remove-user`, {
     method: 'POST',
     headers: getAuthHeaders(),
+    credentials: 'omit',
     body: JSON.stringify({ username })
   })
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to remove user')
+    throw new Error(error.detail || error.error || error.message || 'Failed to remove user')
   }
   
   return { success: true }
@@ -44,12 +54,13 @@ export async function removeUser(username) {
 export async function getUsers() {
   const response = await fetch(`${API_BASE}/api/admin/users`, {
     method: 'GET',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    credentials: 'omit'
   })
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to get users')
+    throw new Error(error.detail || error.error || error.message || 'Failed to get users')
   }
   
   const data = await response.json()
@@ -60,31 +71,19 @@ export async function updateUser(userId, userData) {
   const response = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
+    credentials: 'omit',
     body: JSON.stringify(userData)
   })
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.detail || 'Failed to update user')
+    throw new Error(error.detail || error.error || error.message || 'Failed to update user')
   }
   
   const data = await response.json()
   return data
 }
 
-export async function analyzeColumns() {
-  const response = await fetch(`${API_BASE}/api/admin/analyze-columns`, {
-    method: 'GET',
-    headers: getAuthHeaders()
-  })
-  
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.detail || 'Failed to analyze columns')
-  }
-  
-  const data = await response.json()
-  return data.analysis
-}
+
 
 

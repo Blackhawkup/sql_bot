@@ -6,14 +6,14 @@ import ChatPage from './pages/ChatPage.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 
 function ProtectedRoute({ children, roles }) {
-  //const { user } = useAuth()
-  ///if (!user) return <Navigate to="/login" replace />
-  //if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />
+  const { user } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />
   return children
 }
 
 function AppContent() {
-  const { loading } = useAuth()
+  const { user, loading } = useAuth()
   
   if (loading) {
     return (
@@ -29,10 +29,24 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-navy-900 text-white">
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<ChatPage />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" replace />} />
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute roles={['admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="*" element={<Navigate to={user ? "/" : "/login"} replace />} />
       </Routes>
     </div>
   )

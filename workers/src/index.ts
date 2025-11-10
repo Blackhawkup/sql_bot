@@ -16,12 +16,13 @@ export type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-// CORS middleware
+// CORS middleware - allow all origins without credentials
 app.use('/*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
+  exposeHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 600,
 }));
 
 // Health check

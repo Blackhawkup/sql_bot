@@ -2,18 +2,16 @@ import React, { useState, useEffect } from 'react'
 import Sidebar from '../components/Sidebar.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { Navigate } from 'react-router-dom'
-import { addUser, removeUser, analyzeColumns, getUsers, updateUser } from '../api/admin.js'
+import { addUser, removeUser, getUsers, updateUser } from '../api/admin.js'
 import { getChatHistory } from '../api/chat.js'
 import Modal from '../components/Modal.jsx'
 
 export default function AdminDashboard() {
   const { user, loading } = useAuth()
   const [users, setUsers] = useState([])
-  const [columnAnalysis, setColumnAnalysis] = useState(null)
   const [allChatHistory, setAllChatHistory] = useState([])
   const [addUserOpen, setAddUserOpen] = useState(false)
   const [removeUserOpen, setRemoveUserOpen] = useState(false)
-  const [showAnalysis, setShowAnalysis] = useState(false)
   const [showChatHistory, setShowChatHistory] = useState(false)
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'user', schema: '', admin_schema: '' })
   const [editUser, setEditUser] = useState(null)
@@ -24,11 +22,6 @@ export default function AdminDashboard() {
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== 'admin') return <Navigate to="/" replace />
-
-  const handleAnalyze = async () => {
-    await loadColumnAnalysis()
-    setShowAnalysis(true)
-  }
 
   const handleAddUser = async () => {
     setLoadingState(true)
@@ -42,14 +35,16 @@ export default function AdminDashboard() {
       }
       
       await addUser(newUser.username, newUser.password, newUser.role, newUser.schema, newUser.admin_schema || null)
+      
+      // Close modal and reset form immediately
       setAddUserOpen(false)
       setNewUser({ username: '', password: '', role: 'user', schema: '', admin_schema: '' })
+      setLoadingState(false)
       
-      // Refresh the users list
-      await loadUsers()
+      // Refresh the users list in the background
+      loadUsers()
     } catch (err) {
       setError(err.message)
-    } finally {
       setLoadingState(false)
     }
   }
@@ -102,18 +97,6 @@ export default function AdminDashboard() {
     }
   }
 
-  const loadColumnAnalysis = async () => {
-    setLoadingState(true)
-    try {
-      const analysis = await analyzeColumns()
-      setColumnAnalysis(analysis)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoadingState(false)
-    }
-  }
-
   const loadAllChatHistory = async () => {
     try {
       const history = await getChatHistory()
@@ -150,7 +133,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-secondaryGray-900">Admin Dashboard</h1>
-                <p className="text-sm text-secondaryGray-800">Manage users and database analytics</p>
+                <p className="text-sm text-secondaryGray-800">Manage users and chat history</p>
               </div>
             </div>
             <button 
@@ -342,127 +325,6 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               </div>
-
-              {/* Database Analysis */}
-              <div className="bg-secondaryGray-100 rounded-card shadow-card p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-teal flex items-center justify-center">
-                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
-                        <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
-                        <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-secondaryGray-900">Database Analysis</h3>
-                      <p className="text-sm text-secondaryGray-800">Analyze column and table usage</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowAnalysis(!showAnalysis)}
-                    className="px-4 py-2 rounded-button bg-secondaryGray-300 text-secondaryGray-900 hover:bg-secondaryGray-500 text-sm font-semibold transition-colors flex items-center gap-2"
-                  >
-                    <svg className={`w-4 h-4 transition-transform ${showAnalysis ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                    {showAnalysis ? 'Hide' : 'Show'} Analysis
-                  </button>
-                </div>
-                
-                {showAnalysis && (
-                  <div className="space-y-4">
-                    <button 
-                      className="btn-primary w-full md:w-auto flex items-center gap-2" 
-                      onClick={handleAnalyze}
-                      disabled={loadingState}
-                    >
-                      <svg className={`w-4 h-4 ${loadingState ? 'animate-spin' : ''}`} fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                      </svg>
-                      {loadingState ? 'Analyzing...' : 'Analyze Database Usage'}
-                    </button>
-                    
-                    {columnAnalysis && (
-                      <div className="space-y-4">
-                        {columnAnalysis.useless_columns && columnAnalysis.useless_columns.length > 0 && (
-                          <div className="bg-secondaryGray-200 rounded-button p-4 border border-secondaryGray-600">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
-                                <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                              <h5 className="text-sm font-bold text-secondaryGray-900">Useless Columns ({columnAnalysis.useless_columns.length})</h5>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {columnAnalysis.useless_columns.map((column, i) => (
-                                <span key={i} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-                                  {column}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {columnAnalysis.useless_tables && columnAnalysis.useless_tables.length > 0 && (
-                          <div className="bg-secondaryGray-200 rounded-button p-4 border border-secondaryGray-600">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
-                                <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                              <h5 className="text-sm font-bold text-secondaryGray-900">Useless Tables ({columnAnalysis.useless_tables.length})</h5>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {columnAnalysis.useless_tables.map((table, i) => (
-                                <span key={i} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-                                  {table}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {columnAnalysis.useful_tables && columnAnalysis.useful_tables.length > 0 && (
-                          <div className="bg-secondaryGray-200 rounded-button p-4 border border-secondaryGray-600">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-                                <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                              <h5 className="text-sm font-bold text-secondaryGray-900">Useful Tables ({columnAnalysis.useful_tables.length})</h5>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {columnAnalysis.useful_tables.map((table, i) => (
-                                <span key={i} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                  {table}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {columnAnalysis.summary && (
-                          <div className="bg-secondaryGray-200 rounded-button p-4 border border-secondaryGray-600">
-                            <h5 className="text-sm font-bold text-secondaryGray-900 mb-2 flex items-center gap-2">
-                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                              </svg>
-                              Summary
-                            </h5>
-                            <div className="text-sm text-secondaryGray-900 whitespace-pre-wrap leading-relaxed">
-                              {columnAnalysis.summary}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           )}
         </div>
@@ -472,6 +334,7 @@ export default function AdminDashboard() {
         open={addUserOpen}
         title="Add New User"
         onClose={() => setAddUserOpen(false)}
+        hideCloseButton={true}
         actions={
           <div className="flex gap-3">
             <button 
@@ -625,6 +488,7 @@ export default function AdminDashboard() {
         open={editUser !== null}
         title="Edit User"
         onClose={() => setEditUser(null)}
+        hideCloseButton={true}
         actions={
           <div className="flex gap-3">
             <button 

@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function Modal({ open, title, children, onClose, actions }) {
+export default function Modal({ open, title, children, onClose, actions, hideCloseButton = false }) {
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -20,12 +20,14 @@ export default function Modal({ open, title, children, onClose, actions }) {
         
         {/* Actions */}
         <div className="px-6 pb-6 pt-2 flex gap-3 justify-end">
-          <button 
-            className="px-5 py-2.5 rounded-button border border-white/20 text-white font-medium hover:bg-white/10 transition-all duration-200" 
-            onClick={onClose}
-          >
-            Close
-          </button>
+          {!hideCloseButton && (
+            <button 
+              className="px-5 py-2.5 rounded-button border border-white/20 text-white font-medium hover:bg-white/10 transition-all duration-200" 
+              onClick={onClose}
+            >
+              Close
+            </button>
+          )}
           {actions}
         </div>
       </div>

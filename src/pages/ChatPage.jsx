@@ -48,10 +48,13 @@ export default function ChatPage() {
     
     try {
       await saveChatSession(sessionName.trim(), messages)
-      setSaveSessionOpen(false)
-      setSessionName('')
-      // Refresh sidebar sessions
+      // Refresh sidebar sessions BEFORE closing modal
       window.dispatchEvent(new CustomEvent('refreshSessions'))
+      // Small delay to ensure the sidebar refreshes
+      setTimeout(() => {
+        setSaveSessionOpen(false)
+        setSessionName('')
+      }, 100)
     } catch (error) {
       setError(error.message)
     }
@@ -158,7 +161,24 @@ export default function ChatPage() {
     try {
       const res = await retryQuery(lastUserPrompt, retryFeedback)
       setCurrentSql(res.sql)
-      const aiMsg = { id: Date.now(), role: 'assistant', content: 'Updated SQL after feedback:', sql: res.sql, previewRows: res.preview }
+      
+      // Get preview by running the query with limit 5
+      let previewRows = []
+      try {
+        const previewRes = await runQuery(res.sql, 5)
+        previewRows = Array.isArray(previewRes?.rows) ? previewRes.rows.slice(0, 5) : []
+      } catch (previewError) {
+        console.warn('Preview query failed:', previewError)
+        previewRows = []
+      }
+      
+      const aiMsg = { 
+        id: Date.now(), 
+        role: 'assistant', 
+        content: 'Updated SQL after feedback:', 
+        sql: res.sql, 
+        previewRows: previewRows 
+      }
       setMessages(prev => [...prev, aiMsg])
     } catch (err) {
       setError(err.message)

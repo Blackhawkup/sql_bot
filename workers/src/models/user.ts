@@ -81,7 +81,7 @@ export async function createUser(
     
     const sql = `
       INSERT INTO users (username, password_hash, role, schema, admin_schema)
-      VALUES ('${username}', '${passwordHash}', '${role}', ${schema ? `'${schema}'` : 'NULL'}, ${adminSchema ? `'${adminSchema}'` : 'NULL'})
+      VALUES ('${username}', '${passwordHash}', '${role}', ${schema ? `'${schema.replace(/'/g, "''")}'` : 'NULL'}, ${adminSchema ? `'${adminSchema.replace(/'/g, "''")}'` : 'NULL'})
       RETURNING *;
     `;
     const rows = await runQuery(env, sql);
@@ -142,8 +142,8 @@ export async function updateUserInfo(
       updates.push(`password_hash = '${hash}'`);
     }
     if (data.role) updates.push(`role = '${data.role}'`);
-    if (data.schema !== undefined) updates.push(`schema = ${data.schema ? `'${data.schema}'` : 'NULL'}`);
-    if (data.admin_schema !== undefined) updates.push(`admin_schema = ${data.admin_schema ? `'${data.admin_schema}'` : 'NULL'}`);
+    if (data.schema !== undefined) updates.push(`schema = ${data.schema ? `'${data.schema.replace(/'/g, "''")}'` : 'NULL'}`);
+    if (data.admin_schema !== undefined) updates.push(`admin_schema = ${data.admin_schema ? `'${data.admin_schema.replace(/'/g, "''")}'` : 'NULL'}`);
 
     const sql = `
       UPDATE users
@@ -235,15 +235,23 @@ export async function logQuery(
 export async function getChatMessages(
   env: Bindings,
   username: string,
-  limit: number = 50
+  limit: number = 50,
+  isAdmin: boolean = false
 ): Promise<any[]> {
   try {
-    const sql = `
-      SELECT * FROM chat_messages
-      WHERE username = '${username}'
-      ORDER BY created_at DESC
-      LIMIT ${limit};
-    `;
+    // Admin users can see all messages, regular users see only their own
+    const sql = isAdmin
+      ? `
+        SELECT * FROM chat_messages
+        ORDER BY created_at DESC
+        LIMIT ${limit};
+      `
+      : `
+        SELECT * FROM chat_messages
+        WHERE username = '${username}'
+        ORDER BY created_at DESC
+        LIMIT ${limit};
+      `;
     return await runQuery(env, sql);
   } catch (error) {
     console.error('Get chat messages error:', error);
@@ -282,7 +290,17 @@ export async function getChatSessions(
       ORDER BY created_at DESC
       LIMIT ${limit};
     `;
-    return await runQuery(env, sql);
+    const rows = await runQuery(env, sql);
+    // Parse messages JSON for each session
+    return rows.map(session => {
+      try {
+        session.messages = JSON.parse(session.messages);
+      } catch (e) {
+        console.error('Failed to parse messages JSON:', e);
+        session.messages = [];
+      }
+      return session;
+    });
   } catch (error) {
     console.error('Get chat sessions error:', error);
     return [];
@@ -301,6 +319,15 @@ export async function getChatSession(
       LIMIT 1;
     `;
     const rows = await runQuery(env, sql);
+    if (rows[0]) {
+      // Parse the messages JSON string back to array
+      try {
+        rows[0].messages = JSON.parse(rows[0].messages);
+      } catch (e) {
+        console.error('Failed to parse messages JSON:', e);
+        rows[0].messages = [];
+      }
+    }
     return rows[0] || null;
   } catch (error) {
     console.error('Get chat session error:', error);

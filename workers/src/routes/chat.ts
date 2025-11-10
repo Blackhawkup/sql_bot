@@ -30,11 +30,22 @@ const runQuerySchema = z.object({
 
 // Validate SQL is SELECT only
 function validateSqlIsSelect(sql: string): boolean {
+  console.log('===== VALIDATION DEBUG =====');
+  console.log('Raw SQL input:', sql);
+  console.log('SQL type:', typeof sql);
+  
   const cleaned = sql
     .replace(/--.*$/gm, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .trim();
+  
+  console.log('Cleaned SQL:', cleaned);
+  
   const firstToken = cleaned.split(/\s+/)[0]?.toLowerCase();
+  console.log('First token:', firstToken);
+  console.log('Is SELECT:', firstToken === 'select');
+  console.log('===========================');
+  
   return firstToken === 'select';
 }
 
@@ -84,31 +95,44 @@ chatRouter.post(
       let sql: string;
       try {
         sql = await generateSQL(env, prompt, userSchema);
+        console.log('===== SQL GENERATION DEBUG =====');
+        console.log('Generated SQL:', sql);
+        console.log('SQL type:', typeof sql);
+        console.log('SQL length:', sql?.length);
+        console.log('SQL bytes:', new TextEncoder().encode(sql));
+        console.log('================================');
       } catch (error: any) {
         if (error.message?.includes('I_CANNOT_GENERATE_SQL')) {
           await logChatMessage(
             env,
             username,
             'assistant',
-            'Your query does not match any tables in your database schema.'
+            'Your query is either unrelated to your database schema or references tables/columns that do not exist. Please ask about the specific tables and columns in your schema.'
           );
           return c.json({
-            error: 'Your query does not match any tables in your database schema.',
+            error: 'Your query is either unrelated to your database schema or references tables/columns that do not exist. Please ask about the specific tables and columns in your schema.',
           }, 400);
         }
         throw error;
       }
 
       // Validate SQL is SELECT only
-      if (!validateSqlIsSelect(sql)) {
+      console.log('Validating SQL:', sql);
+      const isValid = validateSqlIsSelect(sql);
+      console.log('Is valid SELECT:', isValid);
+      if (!isValid) {
         await logChatMessage(
           env,
           username,
           'assistant',
           'Generated SQL is not a SELECT. For safety only SELECT queries are allowed.'
         );
+        
+        // Return the generated SQL in the error for debugging
         return c.json({
           error: 'Only SELECT queries are allowed for safety.',
+          debug_sql: sql,
+          debug_info: 'The AI generated a non-SELECT query. Check the logs.'
         }, 400);
       }
 
@@ -177,7 +201,11 @@ chatRouter.get('/chat-history', jwtMiddleware, async (c) => {
   const env = c.env;
 
   try {
-    const messages = await getChatMessages(env, user.sub, 50);
+    // Check if user is admin
+    const dbUser = await getUserByUsername(env, user.sub);
+    const isAdmin = dbUser?.role === 'admin';
+    
+    const messages = await getChatMessages(env, user.sub, 50, isAdmin);
     return c.json({ status: 'ok', messages });
   } catch (error: any) {
     return c.json({ error: error.message }, 500);
@@ -259,6 +287,52 @@ chatRouter.get('/test-db', async (c) => {
     return c.json({
       error: 'Database connection failed',
       details: error.message,
+    }, 500);
+  }
+});
+
+// Debug endpoint to test SQL generation
+chatRouter.post('/debug-sql', jwtMiddleware, async (c) => {
+  const body = await c.req.json();
+  const user = c.get('user');
+  const env = c.env;
+  
+  try {
+    const username = user.sub;
+    const prompt = body.prompt || 'Show all users';
+    
+    // Get user
+    const dbUser = await getUserByUsername(env, username);
+    if (!dbUser) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    // Get schema
+    const userSchema = dbUser.role === 'admin' && dbUser.admin_schema
+      ? dbUser.admin_schema
+      : dbUser.schema;
+    
+    // Generate SQL
+    const sql = await generateSQL(env, prompt, userSchema);
+    
+    // Validate
+    const cleaned = sql.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    const firstToken = cleaned.split(/\s+/)[0]?.toLowerCase();
+    
+    return c.json({
+      prompt,
+      schema: userSchema,
+      generated_sql: sql,
+      cleaned_sql: cleaned,
+      first_token: firstToken,
+      is_valid_select: firstToken === 'select',
+      user_role: dbUser.role,
+      has_admin_schema: !!dbUser.admin_schema
+    });
+  } catch (error: any) {
+    return c.json({
+      error: error.message,
+      stack: error.stack
     }, 500);
   }
 });
